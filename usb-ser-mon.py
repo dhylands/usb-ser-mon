@@ -18,6 +18,7 @@ import traceback
 import syslog
 import argparse
 
+EXIT_CHAR = chr(ord('X') - ord('@'))    # Control-X
 
 def is_usb_serial(device, serial_num=None, vendor=None):
     """Checks device to see if its a USB Serial device.
@@ -49,7 +50,7 @@ def extra_info(device):
     return ''
 
 
-def usb_serial_mon(monitor, device):
+def usb_serial_mon(monitor, device, baud=115200):
     """Monitors the serial port from a given USB serial device.
 
     This function open the USB serial port associated with device, and
@@ -63,12 +64,13 @@ def usb_serial_mon(monitor, device):
     port_name = device.device_node
     print 'USB Serial device%s connected @%s\r' % (
         extra_info(device), port_name)
-    print 'Use Control-C to exit.\r'
+    print 'Use Control-%c to exit.\r' % chr(ord(EXIT_CHAR) + ord('@'))
     epoll = select.epoll()
     epoll.register(monitor.fileno(), select.POLLIN)
 
     try:
         serial_port = serial.Serial(port=port_name,
+                                    baudrate=baud,
                                     timeout=0.001,
                                     bytesize=serial.EIGHTBITS,
                                     parity=serial.PARITY_NONE,
@@ -118,8 +120,7 @@ def usb_serial_mon(monitor, device):
                 data = sys.stdin.read(1)
                 #for x in data:
                 #    print "stdin.Read '%c' 0x%02x\r" % (x, ord(x))
-                if data[0] == chr(3):
-                    # Intercept Control-C and tell our program to exit
+                if data[0] == EXIT_CHAR:
                     raise KeyboardInterrupt
                 if data[0] == '\n':
                     serial_port.write('\r')
@@ -129,11 +130,20 @@ def usb_serial_mon(monitor, device):
 def main():
     """The main program."""
 
+    default_baud = 115200
     parser = argparse.ArgumentParser(
         prog="usb-ser-mon.py",
         usage="%(prog)s [options] [command]",
         description="Monitor serial output from USB Serial devices",
-        epilog="Press Control-C to quit"
+        epilog="Press Control-%c to quit" % chr(ord(EXIT_CHAR) + ord('@'))
+    )
+    parser.add_argument(
+        "-b", "--baud",
+        dest="baud",
+        action="store",
+        type=int,
+        help="Set the baudrate used (default = %d)" % default_baud,
+        default=default_baud
     )
     parser.add_argument(
         "-l", "--list",
@@ -197,7 +207,7 @@ def main():
         # Check to see if the USB Serial device is already present.
         for device in context.list_devices(subsystem='tty'):
             if is_usb_serial(device, serial_num=args.serial, vendor=args.vendor):
-                usb_serial_mon(monitor, device)
+                usb_serial_mon(monitor, device, baud=args.baud)
 
         # Otherwise wait for the teensy device to connect
         while True:
@@ -218,12 +228,11 @@ def main():
                         if device.action != 'add':
                             continue
                         if is_usb_serial(device, serial_num=args.serial, vendor=args.vendor):
-                            usb_serial_mon(monitor, device)
+                            usb_serial_mon(monitor, device, baud=args.baud)
                             break
                     if fileno == sys.stdin.fileno():
                         data = sys.stdin.read(1)
-                        if data[0] == chr(3):
-                            # Intercept Control-C and tell our program to exit
+                        if data[0] == EXIT_CHAR:
                             raise KeyboardInterrupt
     except KeyboardInterrupt:
         print '\r\n'
