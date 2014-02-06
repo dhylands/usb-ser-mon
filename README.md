@@ -64,6 +64,8 @@ Discovery board.
 
 Use Control-C to exit from usb-ser-mon.py.
 
+The ```mk-udev-rules-stm32.sh``` script will create the appropriate udev rules
+for the STM32F4 series processors.
 
-
-
+The ```mk-udev-rules-teensy.sh``` script will create the appropriate udev rules
+for the Teensy 3.1 board    .
