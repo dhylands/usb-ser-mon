@@ -62,10 +62,13 @@ You only need to use as many characters as are required to uniquely identify a
 device, so I could use ```./usb-ser-mon.py -n STM``` to connect to the
 Discovery board.
 
-Use Control-C to exit from usb-ser-mon.py.
+Use Control-X to exit from usb-ser-mon.py.
 
 The ```mk-udev-rules-stm32.sh``` script will create the appropriate udev rules
 for the STM32F4 series processors.
 
+The ```mk-udev-rules-pyboard.sh``` script will create the appropriate udev rules
+for the MicroPython pyboard.
+
 The ```mk-udev-rules-teensy.sh``` script will create the appropriate udev rules
-for the Teensy 3.1 board    .
+for the Teensy 3.1 board.

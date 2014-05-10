@@ -17,6 +17,7 @@ import termios
 import traceback
 import syslog
 import argparse
+import time
 
 EXIT_CHAR = chr(ord('X') - ord('@'))    # Control-X
 
@@ -126,6 +127,7 @@ def usb_serial_mon(monitor, device, baud=115200):
                     serial_port.write('\r')
                 else:
                     serial_port.write(data)
+                time.sleep(0.002)
 
 def main():
     """The main program."""
