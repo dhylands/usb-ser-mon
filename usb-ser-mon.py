@@ -8,6 +8,8 @@ be connected.
 
 """
 
+from __future__ import print_function
+
 import select
 import pyudev
 import serial
@@ -20,6 +22,16 @@ import argparse
 import time
 
 EXIT_CHAR = chr(ord('X') - ord('@'))    # Control-X
+
+def log(str, end='\n'):
+    global LOG_FILE
+    if str[-1] == '\r':
+        str = str[:-1]
+    print(str, end=end, file=LOG_FILE)
+
+def log_print(str, end='\n'):
+    print(str, end=end)
+    log(str, end=end)
 
 def is_usb_serial(device, serial_num=None, vendor=None):
     """Checks device to see if its a USB Serial device.
@@ -63,9 +75,9 @@ def usb_serial_mon(monitor, device, baud=115200):
 
     """
     port_name = device.device_node
-    print 'USB Serial device%s connected @%s\r' % (
-        extra_info(device), port_name)
-    print 'Use Control-%c to exit.\r' % chr(ord(EXIT_CHAR) + ord('@'))
+    log_print('USB Serial device%s connected @%s\r' % (
+              extra_info(device), port_name))
+    log_print('Use Control-%c to exit.\r' % chr(ord(EXIT_CHAR) + ord('@')))
     epoll = select.epoll()
     epoll.register(monitor.fileno(), select.POLLIN)
 
@@ -80,7 +92,7 @@ def usb_serial_mon(monitor, device, baud=115200):
                                     rtscts=False,
                                     dsrdtr=False)
     except serial.serialutil.SerialException:
-        print "Unable to open port '%s'\r" % port_name
+        log_print("Unable to open port '%s'\r" % port_name)
         return
 
     serial_fd = serial_port.fileno()
@@ -101,26 +113,27 @@ def usb_serial_mon(monitor, device, baud=115200):
                 if (dev.device_node != port_name or
                         dev.action != 'remove'):
                     continue
-                print 'USB Serial device @', port_name, ' disconnected.\r'
-                print '\r'
+                log_print('USB Serial device @%s disconnected.\r' % port_name)
+                log_print('\r')
                 serial_port.close()
                 return
             if fileno == serial_port.fileno():
                 try:
                     data = serial_port.read(256)
                 except serial.serialutil.SerialException:
-                    print 'USB Serial device @', port_name, ' disconnected.\r'
-                    print '\r'
+                    log_print('USB Serial device @%s disconnected.\r' % port_name)
+                    log_print('\r')
                     serial_port.close()
                     return
                 #for x in data:
-                #    print "Serial.Read '%c' 0x%02x\r" % (x, ord(x))
+                #    log_print("Serial.Read '%c' 0x%02x\r" % (x, ord(x)))
                 sys.stdout.write(data)
                 sys.stdout.flush()
+                log(data, end='')
             if fileno == sys.stdin.fileno():
                 data = sys.stdin.read(1)
                 #for x in data:
-                #    print "stdin.Read '%c' 0x%02x\r" % (x, ord(x))
+                #    log_print("stdin.Read '%c' 0x%02x\r" % (x, ord(x)))
                 if data[0] == EXIT_CHAR:
                     raise KeyboardInterrupt
                 if data[0] == '\n':
@@ -131,6 +144,7 @@ def usb_serial_mon(monitor, device, baud=115200):
 
 def main():
     """The main program."""
+    global LOG_FILE
 
     default_baud = 115200
     parser = argparse.ArgumentParser(
@@ -159,6 +173,12 @@ def main():
         help="Connect to USB Serial device with a given serial number"
     )
     parser.add_argument(
+        "--log",
+        dest="log",
+        default="usb-ser-mon.log",
+        help="Log the session to a file."
+    )
+    parser.add_argument(
         "-n", "--vendor",
         dest="vendor",
         help="Connect to USB Serial device with a given vendor"
@@ -171,9 +191,10 @@ def main():
         default=False
     )
     args = parser.parse_args(sys.argv[1:])
+    LOG_FILE = open(args.log, "w")
 
     if args.verbose:
-        print 'pyudev version =', pyudev.__version__
+        log_print('pyudev version = %s' % pyudev.__version__)
 
     context = pyudev.Context()
     context.log_priority = syslog.LOG_NOTICE
@@ -182,11 +203,11 @@ def main():
         detected = False
         for device in context.list_devices(subsystem='tty'):
             if is_usb_serial(device):
-                print 'USB Serial Device%s found @%s\r' % (
-                    extra_info(device), device.device_node)
+                log_print('USB Serial Device%s found @%s\r' % (
+                          extra_info(device), device.device_node))
                 detected = True
         if not detected:
-            print 'No USB Serial devices detected.\r'
+            log_print('No USB Serial devices detected.\r')
         return
 
     stdin_fd = sys.stdin.fileno()
@@ -218,7 +239,7 @@ def main():
                 dev['ID_SERIAL_SHORT'] = args.serial
             if args.vendor:
                 dev['ID_VENDOR'] = args.vendor
-            print 'Waiting for USB Serial Device%s ...\r' % extra_info(dev)
+            log_print('Waiting for USB Serial Device%s ...\r' % extra_info(dev))
             epoll = select.epoll()
             epoll.register(monitor.fileno(), select.POLLIN)
             epoll.register(sys.stdin.fileno(), select.POLLIN)
@@ -237,7 +258,7 @@ def main():
                         if data[0] == EXIT_CHAR:
                             raise KeyboardInterrupt
     except KeyboardInterrupt:
-        print '\r\n'
+        log_print('\r')
     except Exception:
         traceback.print_exc()
     # Restore stdin back to its old settings
