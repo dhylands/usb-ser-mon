@@ -63,7 +63,7 @@ def extra_info(device):
     return ''
 
 
-def usb_serial_mon(monitor, device, baud=115200):
+def usb_serial_mon(monitor, device, baud=115200, debug=False):
     """Monitors the serial port from a given USB serial device.
 
     This function open the USB serial port associated with device, and
@@ -125,15 +125,28 @@ def usb_serial_mon(monitor, device, baud=115200):
                     log_print('\r')
                     serial_port.close()
                     return
-                #for x in data:
-                #    log_print("Serial.Read '%c' 0x%02x\r" % (x, ord(x)))
+                if debug:
+                    for x in data:
+                        log_print("Serial.Read '%c' 0x%02x\r" % (x, ord(x)))
+                pos = 0
+                while True:
+                    nl_pos = data.find('\n', pos)
+                    if nl_pos < 0:
+                        break
+                    if nl_pos > 0 and data[nl_pos - 1] == '\r':
+                        # already have \r before \n - just leave things be
+                        pos = nl_pos + 1
+                        continue
+                    data = data[:nl_pos] + '\r' + data[nl_pos:]
+                    pos = nl_pos + 2
                 sys.stdout.write(data)
                 sys.stdout.flush()
                 log(data, end='')
             if fileno == sys.stdin.fileno():
                 data = sys.stdin.read(1)
-                #for x in data:
-                #    log_print("stdin.Read '%c' 0x%02x\r" % (x, ord(x)))
+                if debug:
+                    for x in data:
+                        log_print("stdin.Read '%c' 0x%02x\r" % (x, ord(x)))
                 if data[0] == EXIT_CHAR:
                     raise KeyboardInterrupt
                 if data[0] == '\n':
@@ -160,6 +173,13 @@ def main():
         type=int,
         help="Set the baudrate used (default = %d)" % default_baud,
         default=default_baud
+    )
+    parser.add_argument(
+        "-d", "--debug",
+        dest="debug",
+        action="store_true",
+        help="Turn on debugging",
+        default=False
     )
     parser.add_argument(
         "-l", "--list",
@@ -230,7 +250,7 @@ def main():
         # Check to see if the USB Serial device is already present.
         for device in context.list_devices(subsystem='tty'):
             if is_usb_serial(device, serial_num=args.serial, vendor=args.vendor):
-                usb_serial_mon(monitor, device, baud=args.baud)
+                usb_serial_mon(monitor, device, baud=args.baud, debug=args.debug)
 
         # Otherwise wait for the teensy device to connect
         while True:
@@ -251,7 +271,7 @@ def main():
                         if device.action != 'add':
                             continue
                         if is_usb_serial(device, serial_num=args.serial, vendor=args.vendor):
-                            usb_serial_mon(monitor, device, baud=args.baud)
+                            usb_serial_mon(monitor, device, baud=args.baud, debug=args.debug)
                             break
                     if fileno == sys.stdin.fileno():
                         data = sys.stdin.read(1)
