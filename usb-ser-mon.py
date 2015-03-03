@@ -63,7 +63,7 @@ def extra_info(device):
     return ''
 
 
-def usb_serial_mon(monitor, device, baud=115200, debug=False):
+def usb_serial_mon(monitor, device, baud=115200, debug=False, echo=False):
     """Monitors the serial port from a given USB serial device.
 
     This function open the USB serial port associated with device, and
@@ -78,6 +78,10 @@ def usb_serial_mon(monitor, device, baud=115200, debug=False):
     log_print('USB Serial device%s connected @%s\r' % (
               extra_info(device), port_name))
     log_print('Use Control-%c to exit.\r' % chr(ord(EXIT_CHAR) + ord('@')))
+
+    if device['ID_VENDOR'].startswith('Synthetos'):
+        echo = True
+
     epoll = select.epoll()
     epoll.register(monitor.fileno(), select.POLLIN)
 
@@ -149,6 +153,11 @@ def usb_serial_mon(monitor, device, baud=115200, debug=False):
                         log_print("stdin.Read '%c' 0x%02x\r" % (x, ord(x)))
                 if data[0] == EXIT_CHAR:
                     raise KeyboardInterrupt
+                if echo:
+                    sys.stdout.write(data)
+                    if data[0] == '\r':
+                        sys.stdout.write('\n')
+                    sys.stdout.flush()
                 if data[0] == '\n':
                     serial_port.write('\r')
                 else:
@@ -179,6 +188,13 @@ def main():
         dest="debug",
         action="store_true",
         help="Turn on debugging",
+        default=False
+    )
+    parser.add_argument(
+        "-e", "--echo",
+        dest="echo",
+        action="store_true",
+        help="Turn on local echo",
         default=False
     )
     parser.add_argument(
@@ -215,6 +231,7 @@ def main():
 
     if args.verbose:
         log_print('pyudev version = %s' % pyudev.__version__)
+        log_print('echo = %d' % args.echo)
 
     context = pyudev.Context()
     context.log_priority = syslog.LOG_NOTICE
@@ -250,7 +267,8 @@ def main():
         # Check to see if the USB Serial device is already present.
         for device in context.list_devices(subsystem='tty'):
             if is_usb_serial(device, serial_num=args.serial, vendor=args.vendor):
-                usb_serial_mon(monitor, device, baud=args.baud, debug=args.debug)
+                usb_serial_mon(monitor, device, baud=args.baud,
+                        debug=args.debug, echo=args.echo)
 
         # Otherwise wait for the teensy device to connect
         while True:
@@ -271,7 +289,8 @@ def main():
                         if device.action != 'add':
                             continue
                         if is_usb_serial(device, serial_num=args.serial, vendor=args.vendor):
-                            usb_serial_mon(monitor, device, baud=args.baud, debug=args.debug)
+                            usb_serial_mon(monitor, device, baud=args.baud,
+                                debug=args.debug, echo=args.echo)
                             break
                     if fileno == sys.stdin.fileno():
                         data = sys.stdin.read(1)
