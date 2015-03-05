@@ -1,11 +1,22 @@
 #!/usr/bin/python -u
 
-"""Program which auto-connects to USB serial devices.
+"""Program which detects USB serial ports.
 
-This program waits for the device to be connected and when the device is
-disconnected, then it will go back to waiting for a device to once again
-be connected.
+This program will search for a USB serial port using a search criteria.
+In its simplest form, you can use the -l (--list) option to list all of
+the detected serial ports.
 
+You can also add the following filters:
+
+--vid 2341      Will only match devices with a Vendor ID of 2341.
+--pid 0001      Will only match devices with a Product ID of 0001
+--vendor Micro  Will only match devices whose vendor name starts with Micro
+--seral  00123  Will only match devices whose serial number stats with 00123
+
+If you use -l or --list then detailed information about all of the matches
+will be printed. If you don't use -l (or --list) then only the name of
+the device will be printed (i.e. /dev/ttyACM0). This is useful in scripts
+where you want to pass the name of the serial port into a utiity to open.
 """
 
 from __future__ import print_function
@@ -67,13 +78,6 @@ def main():
         prog="find-port.py",
         usage="%(prog)s [options] [command]",
         description="Find the /dev/tty port for a USB Serial devices",
-    )
-    parser.add_argument(
-        "-d", "--debug",
-        dest="debug",
-        action="store_true",
-        help="Turn on debugging",
-        default=False
     )
     parser.add_argument(
         "-l", "--list",
