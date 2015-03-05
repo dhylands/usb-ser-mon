@@ -130,7 +130,7 @@ def main():
                       extra_info(device), device.device_node))
                 detected = True
         if not detected:
-            log_print('No USB Serial devices detected.\r')
+            print('No USB Serial devices detected.\r')
         return
 
     for device in context.list_devices(subsystem='tty'):
