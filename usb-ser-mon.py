@@ -21,7 +21,12 @@ import syslog
 import argparse
 import time
 
-EXIT_CHAR = chr(ord('X') - ord('@'))    # Control-X
+EXIT_CHAR = 0
+def set_exit_char(exit_char):
+    global EXIT_CHAR
+    EXIT_CHAR = chr(ord(exit_char) - ord('@'))
+
+set_exit_char('X')  # Control-X
 
 def log(str, end='\n'):
     global LOG_FILE
@@ -226,12 +231,22 @@ def main():
         help="Turn on verbose messages",
         default=False
     )
+    parser.add_argument(
+        "-y",
+        dest="ctrl_y_exit",
+        action="store_true",
+        help="Use Control-Y to exit rather than Control-X",
+        default=False
+    )
     args = parser.parse_args(sys.argv[1:])
     LOG_FILE = open(args.log, "w")
 
     if args.verbose:
         log_print('pyudev version = %s' % pyudev.__version__)
         log_print('echo = %d' % args.echo)
+
+    if args.ctrl_y_exit:
+        set_exit_char('Y')
 
     context = pyudev.Context()
     context.log_priority = syslog.LOG_NOTICE
