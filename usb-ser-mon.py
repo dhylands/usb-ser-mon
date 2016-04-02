@@ -176,6 +176,8 @@ def usb_serial_mon(monitor, device, baud=115200, debug=False, echo=False):
                 log.log(data, end='')
             if fileno == sys.stdin.fileno():
                 data = sys.stdin.read(1)
+                if len(data) == 0:
+                    continue
                 if debug:
                     for x in data:
                         log.print("stdin.Read '%c' 0x%02x\r" % (x, ord(x)))
