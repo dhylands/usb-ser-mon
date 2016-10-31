@@ -61,7 +61,7 @@ class Logger(object):
         return time_str
 
 
-def is_usb_serial(device, serial_num=None, vendor=None):
+def is_usb_serial(device, args=None):
     """Checks device to see if its a USB Serial device.
 
     The caller already filters on the subsystem being 'tty'.
@@ -71,11 +71,12 @@ def is_usb_serial(device, serial_num=None, vendor=None):
     """
     if 'ID_VENDOR' not in device:
         return False
-    if not vendor is None:
-        if not device['ID_VENDOR'].startswith(vendor):
+    if not args is None:
+        if args.port and args.port not in device.device_node:
             return False
-    if not serial_num is None:
-        if device['ID_SERIAL_SHORT'] != serial_num:
+        if args.vendor and not device['ID_VENDOR'].startswith(args.vendor):
+            return False
+        if args.serial and device['ID_SERIAL_SHORT'] != args.serial:
             return False
     return True
 
@@ -205,6 +206,13 @@ def main():
         epilog="Press Control-%c to quit" % chr(ord(EXIT_CHAR) + ord('@'))
     )
     parser.add_argument(
+        "-p", "--port",
+        dest="port",
+        action="store",
+        help="Set the port to connect to",
+        default=None
+    )
+    parser.add_argument(
         "-b", "--baud",
         dest="baud",
         action="store",
@@ -235,7 +243,8 @@ def main():
     parser.add_argument(
         "-s", "--serial",
         dest="serial",
-        help="Connect to USB Serial device with a given serial number"
+        help="Connect to USB Serial device with a given serial number",
+        default=None
     )
     parser.add_argument(
         "--log",
@@ -246,7 +255,8 @@ def main():
     parser.add_argument(
         "-n", "--vendor",
         dest="vendor",
-        help="Connect to USB Serial device with a given vendor"
+        help="Connect to USB Serial device with a given vendor",
+        default=None
     )
     parser.add_argument(
         "-v", "--verbose",
@@ -307,7 +317,7 @@ def main():
 
         # Check to see if the USB Serial device is already present.
         for device in context.list_devices(subsystem='tty'):
-            if is_usb_serial(device, serial_num=args.serial, vendor=args.vendor):
+            if is_usb_serial(device, args):
                 usb_serial_mon(monitor, device, baud=args.baud,
                         debug=args.debug, echo=args.echo)
 
@@ -329,7 +339,7 @@ def main():
                         device = monitor.poll()
                         if device.action != 'add':
                             continue
-                        if is_usb_serial(device, serial_num=args.serial, vendor=args.vendor):
+                        if is_usb_serial(device, args):
                             usb_serial_mon(monitor, device, baud=args.baud,
                                 debug=args.debug, echo=args.echo)
                             break
