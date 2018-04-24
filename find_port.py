@@ -51,9 +51,13 @@ def is_usb_serial(device, args):
         if device['ID_MODEL_ID'] != args.pid:
             return False
     if not args.vendor is None:
+        if not 'ID_VENDOR' in device:
+          return False
         if not device['ID_VENDOR'].startswith(args.vendor):
             return False
     if not args.serial is None:
+        if not 'ID_SERIAL_SHORT' in device:
+            return False
         if not device['ID_SERIAL_SHORT'].startswith(args.serial):
             return False
     return True
