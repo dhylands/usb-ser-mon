@@ -1,4 +1,4 @@
-#!/usr/bin/python -u
+#!/usr/local/bin/python -u
 
 """Program which auto-connects to USB serial devices.
 
