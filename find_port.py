@@ -30,23 +30,24 @@ def is_usb_serial(device, vid=None, pid=None, vendor=None, serial=None):
     """
     if 'ID_VENDOR' not in device:
         return False
-    if not vid is None:
+    if vid is not None:
         if device['ID_VENDOR_ID'] != vid:
             return False
-    if not pid is None:
+    if pid is not None:
         if device['ID_MODEL_ID'] != pid:
             return False
-    if not vendor is None:
-        if not 'ID_VENDOR' in device:
+    if vendor is not None:
+        if 'ID_VENDOR' not in device:
             return False
         if not device['ID_VENDOR'].startswith(vendor):
             return False
-    if not serial is None:
-        if not 'ID_SERIAL_SHORT' in device:
+    if serial is not None:
+        if 'ID_SERIAL_SHORT' not in device:
             return False
         if not device['ID_SERIAL_SHORT'].startswith(serial):
             return False
     return True
+
 
 def extra_info(device):
     extra_items = []
@@ -58,6 +59,7 @@ def extra_info(device):
         return ' with ' + ' '.join(extra_items)
     return ''
 
+
 def list_devices(vid=None, pid=None, vendor=None, serial=None):
     devs = []
     context = pyudev.Context()
@@ -68,10 +70,12 @@ def list_devices(vid=None, pid=None, vendor=None, serial=None):
                          extra_info(device), device.device_node])
     return devs
 
+
 def print_list_devices(*args, **kwargs):
     '''Print all USB Serial devices'''
     for device in list_devices(*args, **kwargs):
         print('USB Serial Device {}:{}{} found @{}'.format(*device))
+
 
 def main():
     """The main program."""
@@ -124,7 +128,6 @@ def main():
     if args.verbose:
         print('pyudev version = %s' % pyudev.__version__)
 
-
     if args.list:
         print_list_devices(**args)
 
@@ -134,6 +137,7 @@ def main():
             print(device.device_node)
             return
     sys.exit(1)
+
 
 if __name__ == "__main__":
     main()
