@@ -173,6 +173,7 @@ setup(
     entry_points={  # Optional
         'console_scripts': [
             'find_port=find_port:main',
+            'usb-ser-mon=usb-ser-mon:main',
         ],
     },
 
