@@ -22,7 +22,8 @@ import sys
 import argparse
 
 
-def is_usb_serial(device, vid=None, pid=None, vendor=None, serial=None):
+def is_usb_serial(device, vid=None, pid=None, vendor=None, serial=None, *args,
+                  **kwargs):
     """Checks device to see if its a USB Serial device.
     The caller already filters on the subsystem being 'tty'.
     If serial_num or vendor is provided, then it will further check to
@@ -60,7 +61,8 @@ def extra_info(device):
     return ''
 
 
-def list_devices(vid=None, pid=None, vendor=None, serial=None):
+def list_devices(vid=None, pid=None, vendor=None, serial=None, *args,
+                 **kwargs):
     devs = []
     context = pyudev.Context()
     for device in context.list_devices(subsystem='tty'):
@@ -129,11 +131,11 @@ def main():
         print('pyudev version = %s' % pyudev.__version__)
 
     if args.list:
-        print_list_devices(**args)
+        print_list_devices(**vars(args))
 
     context = pyudev.Context()
     for device in context.list_devices(subsystem='tty'):
-        if is_usb_serial(device, **args):
+        if is_usb_serial(device, **vars(args)):
             print(device.device_node)
             return
     sys.exit(1)
