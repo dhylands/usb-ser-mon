@@ -172,8 +172,8 @@ setup(
     # executes the function `main` from this package when invoked:
     entry_points={  # Optional
         'console_scripts': [
-            'find_port=find_port:main',
-            'usb-ser-mon=usb-ser-mon:main',
+            'find_port=usb_ser_mon.find_port:main',
+            'usb_ser_mon=usb_ser_mon.usb_ser_mon:main',
         ],
     },
 
@@ -186,6 +186,4 @@ setup(
     # issues, where the source is hosted, where to say thanks to the package
     # maintainers, and where to support the project financially. The key is
     # what's used to render the link text on PyPI.
-    project_urls={  # Optional
-    },
 )
