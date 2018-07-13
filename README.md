@@ -1,4 +1,4 @@
-usb-ser-mon.py
+usb_ser_mon
 ==============
 
 A serial monitor for USB Serial devices.
@@ -21,6 +21,21 @@ It was tested with the following devices:
   - STM32F4DISCOVERY board
   - Prolific USB to Serial adapter
 
+Installation
+============
+Download or checkout this repository. With a terminal opened in the project directory.
+Install using pip:
+```
+pip install .
+```
+
+If you want to edit the files in this directory and use them, install in edit mode:
+```
+pip install -e .
+```
+
+Usage
+=====
 
 Use -l to list all of the connected devices.
 ```

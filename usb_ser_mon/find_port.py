@@ -1,18 +1,14 @@
 #!/usr/bin/env python
 
 """Program which detects USB serial ports.
-
 This program will search for a USB serial port using a search criteria.
 In its simplest form, you can use the -l (--list) option to list all of
 the detected serial ports.
-
 You can also add the following filters:
-
 --vid 2341      Will only match devices with a Vendor ID of 2341.
 --pid 0001      Will only match devices with a Product ID of 0001
 --vendor Micro  Will only match devices whose vendor name starts with Micro
 --seral  00123  Will only match devices whose serial number stats with 00123
-
 If you use -l or --list then detailed information about all of the matches
 will be printed. If you don't use -l (or --list) then only the name of
 the device will be printed (i.e. /dev/ttyACM0). This is useful in scripts
@@ -21,44 +17,35 @@ where you want to pass the name of the serial port into a utiity to open.
 
 from __future__ import print_function
 
-import select
 import pyudev
-import serial
 import sys
-import tty
-import termios
-import traceback
-import syslog
 import argparse
-import time
 
-EXIT_CHAR = chr(ord('X') - ord('@'))    # Control-X
 
-def is_usb_serial(device, args):
+def is_usb_serial(device, vid=None, pid=None, vendor=None, serial=None, *args,
+                  **kwargs):
     """Checks device to see if its a USB Serial device.
-
     The caller already filters on the subsystem being 'tty'.
-
     If serial_num or vendor is provided, then it will further check to
     see if the serial number and vendor of the device also matches.
     """
     if 'ID_VENDOR' not in device:
         return False
-    if not args.vid is None:
-        if device['ID_VENDOR_ID'] != args.vid:
+    if vid is not None:
+        if device['ID_VENDOR_ID'] != vid:
             return False
-    if not args.pid is None:
-        if device['ID_MODEL_ID'] != args.pid:
+    if pid is not None:
+        if device['ID_MODEL_ID'] != pid:
             return False
-    if not args.vendor is None:
-        if not 'ID_VENDOR' in device:
-          return False
-        if not device['ID_VENDOR'].startswith(args.vendor):
+    if vendor is not None:
+        if 'ID_VENDOR' not in device:
             return False
-    if not args.serial is None:
-        if not 'ID_SERIAL_SHORT' in device:
+        if not device['ID_VENDOR'].startswith(vendor):
             return False
-        if not device['ID_SERIAL_SHORT'].startswith(args.serial):
+    if serial is not None:
+        if 'ID_SERIAL_SHORT' not in device:
+            return False
+        if not device['ID_SERIAL_SHORT'].startswith(serial):
             return False
     return True
 
@@ -74,10 +61,20 @@ def extra_info(device):
     return ''
 
 
+def list_devices(vid=None, pid=None, vendor=None, serial=None, *args,
+                 **kwargs):
+    devs = []
+    context = pyudev.Context()
+    for device in context.list_devices(subsystem='tty'):
+        if is_usb_serial(device, vid=vid, pid=pid, vendor=vendor,
+                         serial=serial):
+            devs.append([device['ID_VENDOR_ID'], device['ID_MODEL_ID'],
+                         extra_info(device), device.device_node])
+    return devs
+
+
 def main():
     """The main program."""
-
-    default_baud = 115200
     parser = argparse.ArgumentParser(
         prog="find-port.py",
         usage="%(prog)s [options] [command]",
@@ -127,25 +124,22 @@ def main():
     if args.verbose:
         print('pyudev version = %s' % pyudev.__version__)
 
-    context = pyudev.Context()
-
     if args.list:
-        detected = False
-        for device in context.list_devices(subsystem='tty'):
-            if is_usb_serial(device, args):
-                print('USB Serial Device %s:%s%s found @%s\r' % (
-                      device['ID_VENDOR_ID'], device['ID_MODEL_ID'],
-                      extra_info(device), device.device_node))
-                detected = True
-        if not detected:
-            print('No USB Serial devices detected.\r')
+        '''Print all USB Serial devices'''
+        devices = list_devices(**vars(args))
+        for device in devices:
+            print('USB Serial Device {}:{}{} found @{}'.format(*device))
+        if len(devices) == 0:
+            print('No USB Serial devices detected.')
         return
 
+    context = pyudev.Context()
     for device in context.list_devices(subsystem='tty'):
-        if is_usb_serial(device, args):
+        if is_usb_serial(device, **vars(args)):
             print(device.device_node)
             return
     sys.exit(1)
 
 
-main()
+if __name__ == "__main__":
+    main()
