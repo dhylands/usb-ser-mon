@@ -70,15 +70,15 @@ setup(
     #
     # This field corresponds to the "Home-Page" metadata field:
     # https://packaging.python.org/specifications/core-metadata/#home-page-optional
-    url='https://github.com/vascotenner/usb-ser-mon/',  # Optional
+    url='https://github.com/dhylands/usb-ser-mon/',  # Optional
 
     # This should be your name or the name of the organization which owns the
     # project.
-    author='',  # Optional
+    author='Dave Hylands',  # Optional
 
     # This should be a valid email address corresponding to the author listed
     # above.
-    author_email='',  # Optional
+    author_email='dhylands@gmail.com',  # Optional
 
     # Classifiers help users find your project by categorizing it.
     #

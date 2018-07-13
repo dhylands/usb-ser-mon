@@ -73,12 +73,6 @@ def list_devices(vid=None, pid=None, vendor=None, serial=None, *args,
     return devs
 
 
-def print_list_devices(*args, **kwargs):
-    '''Print all USB Serial devices'''
-    for device in list_devices(*args, **kwargs):
-        print('USB Serial Device {}:{}{} found @{}'.format(*device))
-
-
 def main():
     """The main program."""
     parser = argparse.ArgumentParser(
@@ -131,7 +125,13 @@ def main():
         print('pyudev version = %s' % pyudev.__version__)
 
     if args.list:
-        print_list_devices(**vars(args))
+        '''Print all USB Serial devices'''
+        devices = list_devices(**vars(args))
+        for device in devices:
+            print('USB Serial Device {}:{}{} found @{}'.format(*device))
+        if len(devices) == 0:
+            print('No USB Serial devices detected.')
+        return
 
     context = pyudev.Context()
     for device in context.list_devices(subsystem='tty'):
