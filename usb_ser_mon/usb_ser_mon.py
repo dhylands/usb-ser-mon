@@ -78,18 +78,28 @@ def is_usb_serial(device, args=None):
             return False
         if args.serial and device['ID_SERIAL_SHORT'] != args.serial:
             return False
+        if args.intf and device['ID_USB_INTERFACE_NUM'] != args.intf:
+            return False
     return True
 
 
 def extra_info(device):
+    #for x in device:
+    #    print(x, device[x])
+    output = ''
+    if 'ID_VENDOR_ID' in device:
+        output = ' {}:{}'.format(device['ID_VENDOR_ID'], device['ID_MODEL_ID'])
     extra_items = []
     if 'ID_VENDOR' in device:
         extra_items.append("vendor '%s'" % device['ID_VENDOR'])
     if 'ID_SERIAL_SHORT' in device:
         extra_items.append("serial '%s'" % device['ID_SERIAL_SHORT'])
+    if 'ID_USB_INTERFACE_NUM' in device:
+        extra_items.append('intf {}'.format(device['ID_USB_INTERFACE_NUM']))
     if extra_items:
-        return ' with ' + ' '.join(extra_items)
-    return ''
+        output += ' with '
+        output += ' '.join(extra_items)
+    return output
 
 
 def usb_serial_mon(monitor, device, baud=115200, debug=False, echo=False):
@@ -233,6 +243,12 @@ def main():
         action="store_true",
         help="Turn on local echo",
         default=False
+    )
+    parser.add_argument(
+        "-i", "--intf",
+        dest="intf",
+        help="Connect to USB serial device with a given interface",
+        default=None
     )
     parser.add_argument(
         "-l", "--list",
