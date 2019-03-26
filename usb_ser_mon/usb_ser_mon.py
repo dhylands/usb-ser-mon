@@ -74,12 +74,21 @@ def is_usb_serial(device, args=None):
     if not args is None:
         if args.port and args.port not in device.device_node:
             return False
-        if args.vendor and not device['ID_VENDOR'].startswith(args.vendor):
-            return False
-        if args.serial and device['ID_SERIAL_SHORT'] != args.serial:
-            return False
-        if args.intf and device['ID_USB_INTERFACE_NUM'] != args.intf:
-            return False
+        if args.vendor:
+            if 'ID_VENDOR' not in device:
+              return False
+            if not device['ID_VENDOR'].startswith(args.vendor):
+              return False
+        if args.serial:
+            if 'ID_SERIAL_SHORT' not in device:
+                return False
+            if device['ID_SERIAL_SHORT'] != args.serial:
+                return False
+        if args.intf:
+            if 'ID_USB_INTERFACE_NUM' not in device:
+                return False
+            if device['ID_USB_INTERFACE_NUM'] != args.intf:
+                return False
     return True
 
 
@@ -306,7 +315,7 @@ def main():
     if args.list:
         detected = False
         for device in context.list_devices(subsystem='tty'):
-            if is_usb_serial(device):
+            if is_usb_serial(device, args):
                 log.print('USB Serial Device%s found @%s\r' % (
                           extra_info(device), device.device_node))
                 detected = True
