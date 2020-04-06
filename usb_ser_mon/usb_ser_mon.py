@@ -1,4 +1,4 @@
-#!/usr/bin/python -u
+#!/usr/bin/python3
 
 """Program which auto-connects to USB serial devices.
 
@@ -20,8 +20,6 @@ import traceback
 import syslog
 import argparse
 import time
-import sys
-import six
 
 EXIT_CHAR = 0
 def set_exit_char(exit_char):
@@ -40,8 +38,8 @@ class Logger(object):
         if not self._log_file:
             return
 
-        for char in six.iterbytes(log_bytes):
-            char = six.int2byte(char)
+        for char in log_bytes:
+            char = bytes([char])
             if char == b'\r':
                 continue
             if len(self._line) == 0:
@@ -64,6 +62,9 @@ class Logger(object):
         time_str = time.strftime('%H:%M:%S', time.localtime(curr_time))
         time_str += '{:.4f}: '.format(curr_time - int(curr_time))[1:]
         return time_str.encode('ascii')
+
+    def char(self, prefix, c):
+        self.print( "%s.Read '%c' 0x%02x\r" % (prefix, chr(c) if c >= 0x20 and c < 0x7f else '?', c))
 
 
 def is_usb_serial(device, args=None):
@@ -183,8 +184,8 @@ def usb_serial_mon(monitor, device, baud=115200, debug=False, echo=False):
                     serial_port.close()
                     return
                 if debug:
-                    for x in six.iterbytes(data):
-                        log.print("Serial.Read 0x%02x\r" % x)
+                    for x in data:
+                        log.char("Serial", x)
                 pos = 0
                 while True:
                     nl_pos = data.find(b'\n', pos)
@@ -204,9 +205,9 @@ def usb_serial_mon(monitor, device, baud=115200, debug=False, echo=False):
                 if len(data) == 0:
                     continue
                 if debug:
-                    for x in six.iterbytes(data):
-                        log.print("stdin.Read 0x%02x\r" % x)
-                if six.byte2int(data) == EXIT_CHAR:
+                    for x in data:
+                        log.char("stdin", x)
+                if data[0] == EXIT_CHAR:
                     raise KeyboardInterrupt
                 if echo:
                     sys.stdout.write(data)
@@ -303,9 +304,8 @@ def main():
         default=False
     )
     args = parser.parse_args(sys.argv[1:])
-    if sys.version_info.major == 3:
-        sys.stdin = sys.stdin.buffer
-        sys.stdout = sys.stdout.buffer
+    sys.stdin = sys.stdin.buffer
+    sys.stdout = sys.stdout.buffer
 
     global log
     log = Logger(open(args.log, "wb"))
@@ -378,7 +378,7 @@ def main():
                             break
                     if fileno == sys.stdin.fileno():
                         data = sys.stdin.read(1)
-                        if six.byte2int(data) == EXIT_CHAR:
+                        if data[0] == EXIT_CHAR:
                             raise KeyboardInterrupt
     except KeyboardInterrupt:
         log.print('\r')
