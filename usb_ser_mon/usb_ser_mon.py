@@ -1,4 +1,4 @@
-#!/usr/bin/python -u
+#!/usr/bin/python3
 
 """Program which auto-connects to USB serial devices.
 
@@ -24,7 +24,7 @@ import time
 EXIT_CHAR = 0
 def set_exit_char(exit_char):
     global EXIT_CHAR
-    EXIT_CHAR = chr(ord(exit_char) - ord('@'))
+    EXIT_CHAR = ord(exit_char) - ord('@')
 
 set_exit_char('X')  # Control-X
 
@@ -32,33 +32,39 @@ class Logger(object):
 
     def __init__(self, log_file=None):
         self._log_file = log_file
-        self._line = ''
+        self._line = b''
 
-    def log(self, log_str, end='\n'):
+    def log(self, log_bytes):
         if not self._log_file:
             return
 
-        for char in log_str + end:
-            if char == '\r':
+        for char in log_bytes:
+            char = bytes([char])
+            if char == b'\r':
                 continue
             if len(self._line) == 0:
                 self._line += self.timestamp()
-            if char == '\n':
-                print(self._line, file=self._log_file)
-                self._line = ''
-            else:
-                self._line += char
+            self._line += char
+            if char == b'\n':
+                self._log_file.write(self._line)
+                self._line = b''
+
 
     def print(self, log_str, end='\n'):
-        print(log_str, end=end)
+        # print accepts a string, but assumes it's ascii-only
+        log_str += end
+        sys.__stdout__.write(log_str)
         if self._log_file:
-            self.log(log_str, end=end)
+            self.log(log_str.encode('ascii'))
 
     def timestamp(self):
         curr_time = round(time.time(), 4)
         time_str = time.strftime('%H:%M:%S', time.localtime(curr_time))
         time_str += '{:.4f}: '.format(curr_time - int(curr_time))[1:]
-        return time_str
+        return time_str.encode('ascii')
+
+    def char(self, prefix, c):
+        self.print( "%s.Read '%c' 0x%02x\r" % (prefix, chr(c) if c >= 0x20 and c < 0x7f else '?', c))
 
 
 def is_usb_serial(device, args=None):
@@ -125,7 +131,7 @@ def usb_serial_mon(monitor, device, baud=115200, debug=False, echo=False):
     port_name = device.device_node
     log.print('USB Serial device%s connected @%s\r' % (
               extra_info(device), port_name))
-    log.print('Use Control-%c to exit.\r' % chr(ord(EXIT_CHAR) + ord('@')))
+    log.print('Use Control-%c to exit.\r' % chr(EXIT_CHAR + ord('@')))
 
     if device['ID_VENDOR'].startswith('Synthetos'):
         echo = True
@@ -179,37 +185,37 @@ def usb_serial_mon(monitor, device, baud=115200, debug=False, echo=False):
                     return
                 if debug:
                     for x in data:
-                        log.print("Serial.Read '%c' 0x%02x\r" % (x, ord(x)))
+                        log.char("Serial", x)
                 pos = 0
                 while True:
-                    nl_pos = data.find('\n', pos)
+                    nl_pos = data.find(b'\n', pos)
                     if nl_pos < 0:
                         break
-                    if nl_pos > 0 and data[nl_pos - 1] == '\r':
+                    if nl_pos > 0 and data[nl_pos-1:nl_pos] == b'\r':
                         # already have \r before \n - just leave things be
                         pos = nl_pos + 1
                         continue
-                    data = data[:nl_pos] + '\r' + data[nl_pos:]
+                    data = data[:nl_pos] + b'\r' + data[nl_pos:]
                     pos = nl_pos + 2
                 sys.stdout.write(data)
                 sys.stdout.flush()
-                log.log(data, end='')
+                log.log(data)
             if fileno == sys.stdin.fileno():
                 data = sys.stdin.read(1)
                 if len(data) == 0:
                     continue
                 if debug:
                     for x in data:
-                        log.print("stdin.Read '%c' 0x%02x\r" % (x, ord(x)))
+                        log.char("stdin", x)
                 if data[0] == EXIT_CHAR:
                     raise KeyboardInterrupt
                 if echo:
                     sys.stdout.write(data)
-                    if data[0] == '\r':
-                        sys.stdout.write('\n')
+                    if data[0:1] == b'\r':
+                        sys.stdout.write(b'\n')
                     sys.stdout.flush()
-                if data[0] == '\n':
-                    serial_port.write('\r')
+                if data[0:1] == b'\n':
+                    serial_port.write(b'\r')
                 else:
                     serial_port.write(data)
                 time.sleep(0.002)
@@ -222,7 +228,7 @@ def main():
         prog="usb-ser-mon.py",
         usage="%(prog)s [options] [command]",
         description="Monitor serial output from USB Serial devices",
-        epilog="Press Control-%c to quit" % chr(ord(EXIT_CHAR) + ord('@'))
+        epilog="Press Control-%c to quit" % chr(EXIT_CHAR + ord('@'))
     )
     parser.add_argument(
         "-p", "--port",
@@ -298,9 +304,11 @@ def main():
         default=False
     )
     args = parser.parse_args(sys.argv[1:])
+    sys.stdin = sys.stdin.buffer
+    sys.stdout = sys.stdout.buffer
 
     global log
-    log = Logger(open(args.log, "w"))
+    log = Logger(open(args.log, "wb"))
 
     if args.verbose:
         log.print('pyudev version = %s' % pyudev.__version__)
@@ -379,4 +387,5 @@ def main():
     # Restore stdin back to its old settings
     termios.tcsetattr(stdin_fd, termios.TCSANOW, old_settings)
 
-main()
+if __name__ == "__main__":
+    main()
