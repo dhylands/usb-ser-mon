@@ -75,25 +75,26 @@ def is_usb_serial(device, args=None):
     If serial_num or vendor is provided, then it will further check to
     see if the serial number and vendor of the device also matches.
     """
-    if 'ID_VENDOR' not in device:
+    prop = device.properties
+    if 'ID_VENDOR' not in prop:
         return False
     if not args is None:
         if args.port and args.port not in device.device_node:
             return False
         if args.vendor:
-            if 'ID_VENDOR' not in device:
+            if 'ID_VENDOR' not in prop:
               return False
-            if not device['ID_VENDOR'].startswith(args.vendor):
+            if not prop['ID_VENDOR'].startswith(args.vendor):
               return False
         if args.serial:
-            if 'ID_SERIAL_SHORT' not in device:
+            if 'ID_SERIAL_SHORT' not in prop:
                 return False
-            if device['ID_SERIAL_SHORT'] != args.serial:
+            if prop['ID_SERIAL_SHORT'] != args.serial:
                 return False
         if args.intf:
-            if 'ID_USB_INTERFACE_NUM' not in device:
+            if 'ID_USB_INTERFACE_NUM' not in prop:
                 return False
-            if device['ID_USB_INTERFACE_NUM'] != args.intf:
+            if prop['ID_USB_INTERFACE_NUM'] != args.intf:
                 return False
     return True
 
@@ -102,15 +103,16 @@ def extra_info(device):
     #for x in device:
     #    print(x, device[x])
     output = ''
-    if 'ID_VENDOR_ID' in device:
-        output = ' {}:{}'.format(device['ID_VENDOR_ID'], device['ID_MODEL_ID'])
+    prop = device.properties
+    if 'ID_VENDOR_ID' in prop:
+        output = ' {}:{}'.format(prop['ID_VENDOR_ID'], prop['ID_MODEL_ID'])
     extra_items = []
-    if 'ID_VENDOR' in device:
-        extra_items.append("vendor '%s'" % device['ID_VENDOR'])
-    if 'ID_SERIAL_SHORT' in device:
-        extra_items.append("serial '%s'" % device['ID_SERIAL_SHORT'])
-    if 'ID_USB_INTERFACE_NUM' in device:
-        extra_items.append('intf {}'.format(device['ID_USB_INTERFACE_NUM']))
+    if 'ID_VENDOR' in prop:
+        extra_items.append("vendor '%s'" % prop['ID_VENDOR'])
+    if 'ID_SERIAL_SHORT' in prop:
+        extra_items.append("serial '%s'" % prop['ID_SERIAL_SHORT'])
+    if 'ID_USB_INTERFACE_NUM' in prop:
+        extra_items.append('intf {}'.format(prop['ID_USB_INTERFACE_NUM']))
     if extra_items:
         output += ' with '
         output += ' '.join(extra_items)
@@ -133,7 +135,7 @@ def usb_serial_mon(monitor, device, baud=115200, debug=False, echo=False):
               extra_info(device), port_name))
     log.print('Use Control-%c to exit.\r' % chr(EXIT_CHAR + ord('@')))
 
-    if device['ID_VENDOR'].startswith('Synthetos'):
+    if device.properties['ID_VENDOR'].startswith('Synthetos'):
         echo = True
 
     epoll = select.epoll()
@@ -358,9 +360,9 @@ def main():
         while True:
             dev = {}
             if args.serial:
-                dev['ID_SERIAL_SHORT'] = args.serial
+                dev.properties['ID_SERIAL_SHORT'] = args.serial
             if args.vendor:
-                dev['ID_VENDOR'] = args.vendor
+                dev.properties['ID_VENDOR'] = args.vendor
             log.print('Waiting for USB Serial Device%s ...\r' % extra_info(dev))
             epoll = select.epoll()
             epoll.register(monitor.fileno(), select.POLLIN)
