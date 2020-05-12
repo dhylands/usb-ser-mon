@@ -20,6 +20,7 @@ import traceback
 import syslog
 import argparse
 import time
+from collections import namedtuple
 
 EXIT_CHAR = 0
 def set_exit_char(exit_char):
@@ -358,7 +359,7 @@ def main():
 
         # Otherwise wait for the teensy device to connect
         while True:
-            dev = {}
+            dev = namedtuple('Device', ['properties'])({})
             if args.serial:
                 dev.properties['ID_SERIAL_SHORT'] = args.serial
             if args.vendor:
