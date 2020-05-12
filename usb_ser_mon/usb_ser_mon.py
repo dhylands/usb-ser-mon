@@ -14,6 +14,7 @@ import select
 import pyudev
 import serial
 import sys
+import os
 import tty
 import termios
 import traceback
@@ -204,7 +205,7 @@ def usb_serial_mon(monitor, device, baud=115200, debug=False, echo=False):
                 sys.stdout.flush()
                 log.log(data)
             if fileno == sys.stdin.fileno():
-                data = sys.stdin.read(1)
+                data = os.read(fileno, 1)
                 if len(data) == 0:
                     continue
                 if debug:
@@ -307,7 +308,6 @@ def main():
         default=False
     )
     args = parser.parse_args(sys.argv[1:])
-    sys.stdin = sys.stdin.buffer
     sys.stdout = sys.stdout.buffer
 
     global log
