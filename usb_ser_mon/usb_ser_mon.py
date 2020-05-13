@@ -14,12 +14,14 @@ import select
 import pyudev
 import serial
 import sys
+import os
 import tty
 import termios
 import traceback
 import syslog
 import argparse
 import time
+from collections import namedtuple
 
 EXIT_CHAR = 0
 def set_exit_char(exit_char):
@@ -203,7 +205,7 @@ def usb_serial_mon(monitor, device, baud=115200, debug=False, echo=False):
                 sys.stdout.flush()
                 log.log(data)
             if fileno == sys.stdin.fileno():
-                data = sys.stdin.read(1)
+                data = os.read(fileno, 1)
                 if len(data) == 0:
                     continue
                 if debug:
@@ -306,7 +308,6 @@ def main():
         default=False
     )
     args = parser.parse_args(sys.argv[1:])
-    sys.stdin = sys.stdin.buffer
     sys.stdout = sys.stdout.buffer
 
     global log
@@ -358,7 +359,7 @@ def main():
 
         # Otherwise wait for the teensy device to connect
         while True:
-            dev = {}
+            dev = namedtuple('Device', ['properties'])({})
             if args.serial:
                 dev.properties['ID_SERIAL_SHORT'] = args.serial
             if args.vendor:
