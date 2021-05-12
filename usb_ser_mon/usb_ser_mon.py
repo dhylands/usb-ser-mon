@@ -380,7 +380,7 @@ def main():
                                 debug=args.debug, echo=args.echo)
                             break
                     if fileno == sys.stdin.fileno():
-                        data = sys.stdin.read(1)
+                        data = os.read(fileno, 1)
                         if data[0] == EXIT_CHAR:
                             raise KeyboardInterrupt
     except KeyboardInterrupt:
